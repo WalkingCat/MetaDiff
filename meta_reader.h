@@ -2,13 +2,13 @@
 #include <comip.h>
 #include <functional>
 
-class metadata_reader
+class meta_reader
 {
 protected:
 	CComPtr<IMetaDataImport2> metadata_import;
 public:
-	metadata_reader();
-	metadata_reader(const metadata_reader& that) { metadata_import = that.metadata_import; }
+	meta_reader();
+	meta_reader(const meta_reader& that) { metadata_import = that.metadata_import; }
 	bool init_alt(const wchar_t* _filename);
 	bool init(const wchar_t* _filename);
 	std::wstring get_name(mdToken token);
@@ -91,7 +91,7 @@ struct meta_type : public meta_elem {
 	std::vector<std::shared_ptr<meta_event>> events;
 };
 
-class meta_type_reader : metadata_reader {
+class meta_type_reader : meta_reader {
 	std::shared_ptr<meta_type> result;
 	std::vector<std::wstring> type_generic_param_names;
 	std::shared_ptr<meta_field> get_field(mdFieldDef token);
@@ -101,7 +101,7 @@ class meta_type_reader : metadata_reader {
 	static std::wstring format_visibility(meta_visibility visibility);
 	virtual std::wstring get_full_name(mdToken token) override;
 public:
-	meta_type_reader(const metadata_reader& reader, mdTypeDef token) : metadata_reader(reader), result(std::make_shared<meta_type>()) {  result->token = token; }
+	meta_type_reader(const meta_reader& reader, mdTypeDef token) : meta_reader(reader), result(std::make_shared<meta_type>()) {  result->token = token; }
 	std::shared_ptr<meta_type> get_type();
 };
 

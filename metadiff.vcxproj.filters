@@ -3,15 +3,28 @@
   <ItemGroup>
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
-    <ClInclude Include="metadata_reader.h" />
     <ClInclude Include="meta_sig_parser.h" />
     <ClInclude Include="meta_utils.h" />
+    <ClInclude Include="meta_reader.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="metadiff.cpp" />
     <ClCompile Include="stdafx.cpp" />
-    <ClCompile Include="metadata_reader.cpp" />
     <ClCompile Include="meta_sig_parser.cpp" />
     <ClCompile Include="meta_utils.cpp" />
+    <ClCompile Include="meta_reader.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md">
+      <Filter>docs</Filter>
+    </None>
+    <None Include="RELEASENOTES.md">
+      <Filter>docs</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="docs">
+      <UniqueIdentifier>{8e3819e1-e41f-4d85-a59d-d25d6e306350}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>

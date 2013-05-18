@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include "metadata_reader.h"
+#include "meta_reader.h"
 #include "meta_sig_parser.h"
 #include "meta_utils.h"
 
@@ -8,7 +8,7 @@ using namespace meta_utils;
 
 #pragma comment(lib, "mscoree.lib")
 
-metadata_reader::metadata_reader() {}
+meta_reader::meta_reader() {}
 
 // bool metadata_reader::init_alt(const wchar_t* filename)
 // {
@@ -25,7 +25,7 @@ metadata_reader::metadata_reader() {}
 // 	return SUCCEEDED(hr) && metadata_import;
 // }
 
-bool metadata_reader::init(const wchar_t* filename)
+bool meta_reader::init(const wchar_t* filename)
 {
 	typedef HRESULT (__stdcall *MetaDataGetDispenser_func)(__in REFCLSID rclsid, __in REFIID riid, __deref_out LPVOID FAR * ppv);
 	MetaDataGetDispenser_func _MetaDataGetDispenser = nullptr;
@@ -48,7 +48,7 @@ bool metadata_reader::init(const wchar_t* filename)
 	return false;
 }
 
-std::wstring metadata_reader::get_name( mdToken token )
+std::wstring meta_reader::get_name( mdToken token )
 {
 	if (metadata_import) {
 		MDUTF8CSTR name = nullptr;
@@ -81,7 +81,7 @@ std::wstring metadata_reader::get_name( mdToken token )
 
 }
 
-std::wstring metadata_reader::get_full_name( mdToken token )
+std::wstring meta_reader::get_full_name( mdToken token )
 {
 	if (metadata_import) {
 		if (TypeFromToken(token) == mdtTypeDef) {
@@ -110,7 +110,7 @@ std::wstring metadata_reader::get_full_name( mdToken token )
 	return get_name(token);
 }
 
-std::vector<mdToken> metadata_reader::enum_tokens(std::function<HRESULT(HCORENUM*, mdToken*, ULONG, ULONG*)> enum_func) const
+std::vector<mdToken> meta_reader::enum_tokens(std::function<HRESULT(HCORENUM*, mdToken*, ULONG, ULONG*)> enum_func) const
 {
 	std::vector<mdToken> ret;
 
@@ -127,37 +127,37 @@ std::vector<mdToken> metadata_reader::enum_tokens(std::function<HRESULT(HCORENUM
 	return ret;
 }
 
-std::vector<mdTypeDef> metadata_reader::enum_types() const
+std::vector<mdTypeDef> meta_reader::enum_types() const
 {
 	return enum_tokens([&](HCORENUM* en, mdToken* tokens, ULONG max, ULONG* count){ return metadata_import->EnumTypeDefs(en, tokens, max, count); });
 }
 
-std::vector<mdFieldDef> metadata_reader::enum_fields(mdTypeDef type)
+std::vector<mdFieldDef> meta_reader::enum_fields(mdTypeDef type)
 {
 	return enum_tokens([&](HCORENUM* en, mdToken* tokens, ULONG max, ULONG* count){ return metadata_import->EnumFields(en, type, tokens, max, count); });
 }
 
-std::vector<mdProperty> metadata_reader::enum_properties(mdTypeDef type)
+std::vector<mdProperty> meta_reader::enum_properties(mdTypeDef type)
 {
 	return enum_tokens([&](HCORENUM* en, mdToken* tokens, ULONG max, ULONG* count){ return metadata_import->EnumProperties(en, type, tokens, max, count); });
 }
 
-std::vector<mdMethodDef> metadata_reader::enum_methods(mdTypeDef type)
+std::vector<mdMethodDef> meta_reader::enum_methods(mdTypeDef type)
 {
 	return enum_tokens([&](HCORENUM* en, mdToken* tokens, ULONG max, ULONG* count){ return metadata_import->EnumMethods(en, type, tokens, max, count); });
 }
 
-std::vector<mdEvent> metadata_reader::enum_events(mdTypeDef type)
+std::vector<mdEvent> meta_reader::enum_events(mdTypeDef type)
 {
 	return enum_tokens([&](HCORENUM* en, mdToken* tokens, ULONG max, ULONG* count){ return metadata_import->EnumEvents(en, type, tokens, max, count); });
 }
 
-std::vector<mdGenericParam> metadata_reader::enum_generic_params( mdToken type_or_method )
+std::vector<mdGenericParam> meta_reader::enum_generic_params( mdToken type_or_method )
 {
 	return enum_tokens([&](HCORENUM* en, mdToken* tokens, ULONG max, ULONG* count){ return metadata_import->EnumGenericParams(en, type_or_method, tokens, max, count); });
 }
 
-std::vector<mdParamDef> metadata_reader::enum_params( mdMethodDef method )
+std::vector<mdParamDef> meta_reader::enum_params( mdMethodDef method )
 {
 	return enum_tokens([&](HCORENUM* en, mdToken* tokens, ULONG max, ULONG* count){ return metadata_import->EnumParams(en, method, tokens, max, count); });
 }
@@ -468,5 +468,5 @@ std::wstring meta_type_reader::get_full_name( mdToken token )
 		}
 	}
 
-	return metadata_reader::get_full_name(token);
+	return meta_reader::get_full_name(token);
 }

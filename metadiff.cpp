@@ -1,9 +1,9 @@
 #include "stdafx.h"
-#include "metadata_reader.h"
+#include "meta_reader.h"
 
 using namespace std;
 
-unordered_map<wstring, shared_ptr<meta_type>> get_types(const metadata_reader& reader) {
+unordered_map<wstring, shared_ptr<meta_type>> get_types(const meta_reader& reader) {
 	unordered_map<wstring, shared_ptr<meta_type>> ret;
 	auto typedefs = reader.enum_types();
 	for each (auto t in typedefs) {
@@ -17,12 +17,12 @@ enum class meta_diff : int { same, removed, changed, child_changed, added };
 
 bool print_diff(meta_diff diff) {
 	switch (diff) {
-	case meta_diff::same: /* printf_s("=\t"); return true;*/ return false;
-	case meta_diff::removed: printf_s("-\t"); return true;
-	case meta_diff::changed: printf_s("*\t"); return true;
-	case meta_diff::child_changed: printf_s("|\t"); return true;
-	case meta_diff::added: printf_s("+\t"); return true;
-	default: printf_s("?\t"); return true;
+	case meta_diff::same: /* printf_s("= "); return true;*/ return false;
+	case meta_diff::removed: printf_s("- "); return true;
+	case meta_diff::changed: printf_s("* "); return true;
+	case meta_diff::child_changed: printf_s("| "); return true;
+	case meta_diff::added: printf_s("+ "); return true;
+	default: printf_s("? "); return true;
 	}
 }
 
@@ -127,7 +127,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	const wchar_t* err_arg = nullptr;
 	wstring new_file, old_file;
 
-	printf_s("\n MetaDiff v0.1\n\n");
+	printf_s("\n MetaDiff v0.1 https://github.com/WalkingCat/MetaDiff\n\n");
 
 	for(int i = 1; i < argc; ++i) {
 		const wchar_t* arg = argv[i];
@@ -169,12 +169,14 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	printf_s(" new file: %S%S\n", new_file.c_str(), new_file_exists ? L"" : L" (NOT EXISTS!)");
 	printf_s(" old file: %S%S\n", old_file.c_str(), old_file_exists ? L"" : L" (NOT EXISTS!)");
-	printf_s("\n diff legends: +: added, -: removed, *: changed, |: type member changed\n");
 	printf_s("\n");
 	
 	if (!(new_file_exists || old_file_exists)) return 0; // at least one of them must exists
 
-	metadata_reader new_reader, old_reader;
+	printf_s(" diff legends: +: added, -: removed, *: changed, |: type member changed\n");
+	printf_s("\n");
+
+	meta_reader new_reader, old_reader;
 
 	// if a file does not exist, don't try to open it, just pretend its fine
 	bool new_reader_inited = (!new_file_exists) || new_reader.init(new_file.c_str());
