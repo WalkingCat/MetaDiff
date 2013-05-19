@@ -224,7 +224,7 @@ std::shared_ptr<meta_property> meta_type_reader::get_property( mdProperty token 
 		ret->display_name = meta_sig_parser(metadata_import, sig, sig_size, type_generic_param_names).parse_property(name);
 
 		meta_visibility setter_visibility = meta_visibility::vis_unknown, getter_visibility = meta_visibility::vis_unknown;
-		for each (auto m in result->methods) {
+		for (const auto& m : result->methods) {
 			if (m->token == getter) {
 				m->set_semantic(meta_method::method_semantics::property_get);
 				getter_visibility = m->visibility;
@@ -274,13 +274,13 @@ std::shared_ptr<meta_method> meta_type_reader::get_method( mdMethodDef token )
 
 		std::vector<std::wstring> param_names;
 		auto params = enum_params(token);
-		for each (auto p in params) param_names.push_back(get_name(p));
+		for (const auto& p : params) param_names.push_back(get_name(p));
 
 		auto generic_params = enum_generic_params(token);
 		if (!generic_params.empty()) {
 			ret->display_name += L"<";
 			bool first = true;
-			for each (auto gp in generic_params) {
+			for (const auto& gp : generic_params) {
 				if (!first) ret->display_name += L", "; else first = false;
 				ret->display_name += get_full_name(gp);
 			}
@@ -331,7 +331,7 @@ std::shared_ptr<meta_event> meta_type_reader::get_event( mdEvent token )
 		ret->display_name = get_full_name(type) + L" " + ret->name;
 	}
 
-	for each (auto m in result->methods) {
+	for (const auto& m : result->methods) {
 		if (m->token == add) m->set_semantic(meta_method::method_semantics::event_add);
 		if (m->token == remove) m->set_semantic(meta_method::method_semantics::event_remove);
 		if (m->token == fire) m->set_semantic(meta_method::method_semantics::event_fire);
@@ -392,12 +392,12 @@ std::shared_ptr<meta_type> meta_type_reader::get_type()
 		if (IsTdPublic(result->attributes)) result->visibility = meta_visibility::vis_public;
 		else if (IsTdNotPublic(result->attributes)) result->visibility = meta_visibility::vis_internal;
 
-		for each (auto gp in generic_params) { type_generic_param_names.push_back(get_full_name(gp)); }
+		for (const auto& gp : generic_params) { type_generic_param_names.push_back(get_full_name(gp)); }
 
 		if (!type_generic_param_names.empty()) {
 			result->display_name += L"<";
 			bool first = true;
-			for each (auto gp_name in type_generic_param_names) {
+			for (const auto& gp_name : type_generic_param_names) {
 				if (!first) result->display_name += L", "; else first = false;
 				result->display_name += gp_name;
 			}
@@ -407,13 +407,13 @@ std::shared_ptr<meta_type> meta_type_reader::get_type()
 		//TODO: this is stupid
 		if (result->semantics == meta_type::type_semantics::delegate_type) {
 			auto methods = enum_methods(result->token);
-			for each (auto m in methods) {
+			for (const auto& m : methods) {
 				wchar_t method_name[1024] = {}; PCCOR_SIGNATURE sig = nullptr; ULONG sig_size = 0; DWORD method_attr;
 				if(SUCCEEDED(metadata_import->GetMethodProps(m, nullptr, method_name, _countof(method_name), nullptr, &method_attr, &sig, &sig_size, nullptr, nullptr))) {
 					if (IsMdSpecialName(method_attr) && !wcscmp(method_name, L"Invoke")) {
 						std::vector<std::wstring> method_param_names;
 						auto method_params = enum_params(m);
-						for each (auto p in method_params) method_param_names.push_back(get_name(p));
+						for (const auto& p : method_params) method_param_names.push_back(get_name(p));
 						result->display_name = meta_sig_parser(metadata_import, sig, sig_size, type_generic_param_names).parse_method(result->display_name.c_str(), method_param_names);
 						break;
 					}
@@ -430,16 +430,16 @@ std::shared_ptr<meta_type> meta_type_reader::get_type()
 	}
 
 	auto fields = enum_fields(result->token);
-	for each (auto f in fields) result->fields.push_back(get_field(f));
+	for (const auto& f : fields) result->fields.push_back(get_field(f));
 
 	auto methods = enum_methods(result->token);
-	for each (auto m in methods) result->methods.push_back(get_method(m));
+	for (const auto& m : methods) result->methods.push_back(get_method(m));
 
 	auto properties = enum_properties(result->token);
-	for each (auto p in properties) result->properties.push_back(get_property(p));
+	for (const auto& p : properties) result->properties.push_back(get_property(p));
 
 	auto events = enum_events(result->token);
-	for each (auto e in events) result->events.push_back(get_event(e));
+	for (const auto e : events) result->events.push_back(get_event(e));
 
 	return result;
 }

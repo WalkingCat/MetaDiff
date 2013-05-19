@@ -6,7 +6,7 @@ using namespace std;
 unordered_map<wstring, shared_ptr<meta_type>> get_types(const meta_reader& reader) {
 	unordered_map<wstring, shared_ptr<meta_type>> ret;
 	auto typedefs = reader.enum_types();
-	for each (auto t in typedefs) {
+	for (const auto& t : typedefs) {
 		auto type = meta_type_reader(reader, t).get_type();
 		ret[type->name] = type;
 	}
@@ -38,9 +38,9 @@ template<typename T>
 bool find_changes(vector<meta_diff_elem<T>>& diffs, bool public_only, const vector<shared_ptr<T>>& old_list, const vector<shared_ptr<T>>& new_list, bool can_overload = false) {
 	bool any_changes = false;
 
-	for each (auto new_elem in new_list) {
+	for (const auto& new_elem : new_list) {
 		shared_ptr<T> old_elem;
-		for each (auto elem in old_list) {
+		for (const auto& elem : old_list) {
 			if (elem->name == new_elem->name) {
 				if (!can_overload || (elem->display_name == new_elem->display_name)) {
 					old_elem = elem;
@@ -65,7 +65,7 @@ bool find_changes(vector<meta_diff_elem<T>>& diffs, bool public_only, const vect
 		}
 	}
 
-	for each (auto old_elem in old_list) {
+	for (const auto& old_elem : old_list) {
 		if (find_if(begin(new_list), end(new_list), [&old_elem](const shared_ptr<T>& elem) ->bool { return elem->name == old_elem->name; }) == end(new_list)) {
 			if (public_only && (old_elem->visibility != meta_visibility::vis_public))
 				continue; // not public, ignore.
@@ -192,17 +192,17 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	bool public_only = (options & diff_options::diffNonPublic) == 0;
 
-	for each (auto& new_type in new_types) {
+	for (auto& new_type : new_types) {
 		auto type_diff = meta_diff_type(meta_diff::same, new_type.second);
 
 		auto old_type = old_types.find(new_type.first);
 		if (old_type == old_types.end()) { // not found in old, so its new, and all members are new
 			if (public_only && (new_type.second->visibility != meta_visibility::vis_public)) continue; // not public, ignore
 
-			for each (auto& f in new_type.second->fields) type_diff.fields.push_back(meta_diff_elem<meta_field>(meta_diff::added, f));
-			for each (auto& p in new_type.second->properties) type_diff.properties.push_back(meta_diff_elem<meta_property>(meta_diff::added, p));
-			for each (auto& m in new_type.second->methods) type_diff.methods.push_back(meta_diff_elem<meta_method>(meta_diff::added, m));
-			for each (auto& e in new_type.second->events) type_diff.events.push_back(meta_diff_elem<meta_event>(meta_diff::added, e));
+			for (const auto& f : new_type.second->fields) type_diff.fields.push_back(meta_diff_elem<meta_field>(meta_diff::added, f));
+			for (const auto& p : new_type.second->properties) type_diff.properties.push_back(meta_diff_elem<meta_property>(meta_diff::added, p));
+			for (const auto& m : new_type.second->methods) type_diff.methods.push_back(meta_diff_elem<meta_method>(meta_diff::added, m));
+			for (const auto& e : new_type.second->events) type_diff.events.push_back(meta_diff_elem<meta_event>(meta_diff::added, e));
 
 			type_diff.diff = meta_diff::added;
 			diff_types.push_back(type_diff);
@@ -225,7 +225,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		}
 	}
 
-	for each (auto& t in old_types) {
+	for (auto& t : old_types) {
 		if (new_types.find(t.first) == new_types.end()) {
 			if (public_only && (t.second->visibility != meta_visibility::vis_public))
 				continue; // not public, ignore
@@ -241,7 +241,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		} else return ns < 0;
 	});
 
-	for each (auto& type in diff_types) {
+	for (const auto& type : diff_types) {
 		if (!print_diff(type.diff)) continue;
 
 		printf_s("%S", type.elem->display_name.c_str());
@@ -255,7 +255,7 @@ int _tmain(int argc, _TCHAR* argv[])
 			printf_s(";\n");
 		} else {
 			printf_s(" {\n");
-			for each (auto f in type.fields) {
+			for (const auto& f : type.fields) {
 				if ((type.elem->semantics == meta_type::type_semantics::enum_type) && (f.elem->specials == meta_field::field_specials::enum_value)) {
 					continue; // hide value__ for enums;
 				}
@@ -271,19 +271,19 @@ int _tmain(int argc, _TCHAR* argv[])
 				}
 			}
 
-			for each (auto p in type.properties) {
+			for (const auto& p : type.properties) {
 				if (!print_diff(p.diff)) continue;
 				printf_s("\t%S\n", p.elem->display_name.c_str());
 			}
 
-			for each (auto m in type.methods) {
+			for (const auto& m : type.methods) {
 				if (m.elem->semantics == meta_method::method_semantics::normal) {
 					if (!print_diff(m.diff)) continue;
 					printf_s("\t%S;\n", m.elem->display_name.c_str());
 				}
 			}
 
-			for each (auto e in type.events) {
+			for (const auto& e : type.events) {
 				if (!print_diff(e.diff)) continue;
 				printf_s("\t%S;\n", e.elem->display_name.c_str());
 			}
