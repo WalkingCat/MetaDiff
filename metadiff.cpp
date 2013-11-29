@@ -35,19 +35,38 @@ struct meta_diff_elem {
 };
 
 template<typename T>
-bool find_changes(vector<meta_diff_elem<T>>& diffs, bool public_only, const vector<shared_ptr<T>>& old_list, const vector<shared_ptr<T>>& new_list, bool can_overload = false) {
+bool find_changes(vector<meta_diff_elem<T>>& diffs, bool public_only, const vector<shared_ptr<T>>& old_list, const vector<shared_ptr<T>>& new_list,
+	const function<int(const shared_ptr<T>&, const shared_ptr<T>&)>& filter = nullptr)
+{
 	bool any_changes = false;
 
 	for (const auto& new_elem : new_list) {
 		shared_ptr<T> old_elem;
+
+		bool ignore = false;
+
 		for (const auto& elem : old_list) {
-			if (elem->name == new_elem->name) {
-				if (!can_overload || (elem->display_name == new_elem->display_name)) {
-					old_elem = elem;
+			bool match = (elem->name == new_elem->name);
+
+			if (match && (filter != nullptr)) {
+				auto filter_res = filter(elem, new_elem);
+
+				if (filter_res == 0) { // found match, proceed
+					match = false; // ignore this old_elem
+				} else if (filter_res < 0) {
+					ignore = true; // ignore this new_elem;
 					break;
 				}
 			}
+
+			if (match) {
+				old_elem = elem;
+				break;
+			}
 		}
+
+		if (ignore) continue;
+
 		if (old_elem) {
 			if (public_only && ((old_elem->visibility != meta_visibility::vis_public) && (new_elem->visibility != meta_visibility::vis_public)))
 				continue; // both are not public, ignore. if ANY of them are public, should proceed. 
@@ -114,10 +133,10 @@ void print_usage() {
 }
 
 struct meta_diff_type : meta_diff_elem<meta_type> {
-	vector<meta_diff_elem<meta_field>> fields;
-	vector<meta_diff_elem<meta_property>> properties;
-	vector<meta_diff_elem<meta_method>> methods;
-	vector<meta_diff_elem<meta_event>> events;
+	vector<meta_diff_elem<meta_field>>		fields;
+	vector<meta_diff_elem<meta_property>>	properties;
+	vector<meta_diff_elem<meta_method>>		methods;
+	vector<meta_diff_elem<meta_event>>		events;
 	meta_diff_type(meta_diff _diff, const shared_ptr<meta_type>& _elem) : meta_diff_elem<meta_type>(_diff, _elem) {}
 };
 
@@ -164,8 +183,8 @@ int _tmain(int argc, _TCHAR* argv[])
 		return 0;
 	}
 
-	bool new_file_exists = PathFileExists(new_file.c_str()) != FALSE;
-	bool old_file_exists = PathFileExists(old_file.c_str()) != FALSE;
+	const bool new_file_exists = PathFileExists(new_file.c_str()) != FALSE;
+	const bool old_file_exists = PathFileExists(old_file.c_str()) != FALSE;
 
 	printf_s(" new file: %S%S\n", new_file.c_str(), new_file_exists ? L"" : L" (NOT EXISTS!)");
 	printf_s(" old file: %S%S\n", old_file.c_str(), old_file_exists ? L"" : L" (NOT EXISTS!)");
@@ -179,30 +198,30 @@ int _tmain(int argc, _TCHAR* argv[])
 	meta_reader new_reader, old_reader;
 
 	// if a file does not exist, don't try to open it, just pretend its fine
-	bool new_reader_inited = (!new_file_exists) || new_reader.init(new_file.c_str());
-	bool old_reader_inited = (!old_file_exists) || old_reader.init(old_file.c_str());
+	const bool new_reader_inited = (!new_file_exists) || new_reader.init(new_file.c_str());
+	const bool old_reader_inited = (!old_file_exists) || old_reader.init(old_file.c_str());
 
 	if (!new_reader_inited) { printf_s("Can't read metadata from new file %S\n", new_file.c_str()); return 0; }
 	if (!old_reader_inited) { printf_s("Can't read metadata from old file %S\n", old_file.c_str()); return 0; }
 
-	unordered_map<wstring, shared_ptr<meta_type>> new_types = get_types(new_reader);
-	unordered_map<wstring, shared_ptr<meta_type>> old_types = get_types(old_reader);
+	const unordered_map<wstring, shared_ptr<meta_type>> new_types = get_types(new_reader);
+	const unordered_map<wstring, shared_ptr<meta_type>> old_types = get_types(old_reader);
 
 	vector<meta_diff_type> diff_types;
 
-	bool public_only = (options & diff_options::diffNonPublic) == 0;
+	const bool public_only = (options & diff_options::diffNonPublic) == 0;
 
-	for (auto& new_type : new_types) {
+	for (const auto& new_type : new_types) {
 		auto type_diff = meta_diff_type(meta_diff::same, new_type.second);
 
 		auto old_type = old_types.find(new_type.first);
 		if (old_type == old_types.end()) { // not found in old, so its new, and all members are new
 			if (public_only && (new_type.second->visibility != meta_visibility::vis_public)) continue; // not public, ignore
 
-			for (const auto& f : new_type.second->fields) type_diff.fields.push_back(meta_diff_elem<meta_field>(meta_diff::added, f));
-			for (const auto& p : new_type.second->properties) type_diff.properties.push_back(meta_diff_elem<meta_property>(meta_diff::added, p));
-			for (const auto& m : new_type.second->methods) type_diff.methods.push_back(meta_diff_elem<meta_method>(meta_diff::added, m));
-			for (const auto& e : new_type.second->events) type_diff.events.push_back(meta_diff_elem<meta_event>(meta_diff::added, e));
+			for (const auto& f : new_type.second->fields)		type_diff.fields.push_back(meta_diff_elem<meta_field>(meta_diff::added, f));
+			for (const auto& p : new_type.second->properties)	type_diff.properties.push_back(meta_diff_elem<meta_property>(meta_diff::added, p));
+			for (const auto& m : new_type.second->methods)		type_diff.methods.push_back(meta_diff_elem<meta_method>(meta_diff::added, m));
+			for (const auto& e : new_type.second->events)		type_diff.events.push_back(meta_diff_elem<meta_event>(meta_diff::added, e));
 
 			type_diff.diff = meta_diff::added;
 			diff_types.push_back(type_diff);
@@ -210,9 +229,21 @@ int _tmain(int argc, _TCHAR* argv[])
 			if (public_only && ((new_type.second->visibility != meta_visibility::vis_public) && (old_type->second->visibility != meta_visibility::vis_public)))
 				continue; // both are not public, ignore. if ANY of them are public, should proceed. 
 
+			auto method_filter = [](const shared_ptr<meta_method>& old_method, const shared_ptr<meta_method>& new_method) -> int {
+				bool match = (old_method->display_name == new_method->display_name); // methods can be overloaded, so compare the full signature
+
+				if (match) {
+					if ((old_method->semantics != meta_method::method_semantics::normal) && (new_method->semantics != meta_method::method_semantics::normal))
+						return -1; // only care about normal methods, ignore others
+					else
+						return 1;
+				} else
+					return 0; // not match, try next
+			};
+
 			bool member_changed = find_changes(type_diff.fields, public_only, old_type->second->fields, new_type.second->fields);
 			member_changed = find_changes(type_diff.properties, public_only, old_type->second->properties, new_type.second->properties) || member_changed;
-			member_changed = find_changes(type_diff.methods, public_only, old_type->second->methods, new_type.second->methods, true) || member_changed;
+			member_changed = find_changes<meta_method>(type_diff.methods, public_only, old_type->second->methods, new_type.second->methods, method_filter) || member_changed;
 			member_changed = find_changes(type_diff.events, public_only, old_type->second->events, new_type.second->events) || member_changed;
 
 			if (member_changed) {
@@ -225,17 +256,17 @@ int _tmain(int argc, _TCHAR* argv[])
 		}
 	}
 
-	for (auto& t : old_types) {
-		if (new_types.find(t.first) == new_types.end()) {
-			if (public_only && (t.second->visibility != meta_visibility::vis_public))
+	for (const auto& old_type : old_types) {
+		if (new_types.find(old_type.first) == new_types.end()) {
+			if (public_only && (old_type.second->visibility != meta_visibility::vis_public))
 				continue; // not public, ignore
 			
-			diff_types.push_back(meta_diff_type(meta_diff::removed, t.second));
+			diff_types.push_back(meta_diff_type(meta_diff::removed, old_type.second));
 		}
 	}
 
 	sort(begin(diff_types), end(diff_types), [](const meta_diff_type& left, const meta_diff_type& right) -> bool {
-		auto ns = left.elem->namespace_name.compare(right.elem->namespace_name);
+		const auto ns = left.elem->namespace_name.compare(right.elem->namespace_name);
 		if (ns == 0) {
 			return left.elem->name < right.elem->name;
 		} else return ns < 0;
