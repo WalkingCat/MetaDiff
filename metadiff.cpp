@@ -272,60 +272,64 @@ int _tmain(int argc, _TCHAR* argv[])
 		} else return ns < 0;
 	});
 
-	for (const auto& type : diff_types) {
-		if (!print_diff(type.diff)) continue;
+	if (diff_types.empty()) {
+		printf_s(" found no differences.\n");
+	} else {
+		for (const auto& type : diff_types) {
+			if (!print_diff(type.diff)) continue;
 
-		printf_s("%S", type.elem->display_name.c_str());
+			printf_s("%S", type.elem->display_name.c_str());
 
-		if ((type.diff == meta_diff::removed) || (type.diff == meta_diff::changed)) {
-			printf_s(";\n\n");
-			continue;
+			if ((type.diff == meta_diff::removed) || (type.diff == meta_diff::changed)) {
+				printf_s(";\n\n");
+				continue;
+			}
+
+			if (type.elem->semantics == meta_type::type_semantics::delegate_type) {
+				printf_s(";\n");
+			} else {
+				printf_s(" {\n");
+				for (const auto& f : type.fields) {
+					if ((type.elem->semantics == meta_type::type_semantics::enum_type) && (f.elem->specials == meta_field::field_specials::enum_value)) {
+						continue; // hide value__ for enums;
+					}
+
+					if (!print_diff(f.diff)) continue;
+
+					printf_s("\t%S", f.elem->display_name.c_str());
+
+					if (type.elem->semantics == meta_type::type_semantics::enum_type) {
+						printf_s(",\n");
+					} else {
+						printf_s(";\n");
+					}
+				}
+
+				for (const auto& p : type.properties) {
+					if (!print_diff(p.diff)) continue;
+					printf_s("\t%S\n", p.elem->display_name.c_str());
+				}
+
+				for (const auto& m : type.methods) {
+					if (m.elem->semantics == meta_method::method_semantics::normal) {
+						if (!print_diff(m.diff)) continue;
+						printf_s("\t%S;\n", m.elem->display_name.c_str());
+					}
+				}
+
+				for (const auto& e : type.events) {
+					if (!print_diff(e.diff)) continue;
+					printf_s("\t%S;\n", e.elem->display_name.c_str());
+				}
+
+				print_diff(type.diff);
+				printf_s("}\n");
+			}
+
+			printf_s("\n");
 		}
-
-		if (type.elem->semantics == meta_type::type_semantics::delegate_type) {
-			printf_s(";\n");
-		} else {
-			printf_s(" {\n");
-			for (const auto& f : type.fields) {
-				if ((type.elem->semantics == meta_type::type_semantics::enum_type) && (f.elem->specials == meta_field::field_specials::enum_value)) {
-					continue; // hide value__ for enums;
-				}
-
-				if (!print_diff(f.diff)) continue;
-
-				printf_s("\t%S", f.elem->display_name.c_str());
-
-				if (type.elem->semantics == meta_type::type_semantics::enum_type) {
-					printf_s(",\n");
-				} else {
-					printf_s(";\n");
-				}
-			}
-
-			for (const auto& p : type.properties) {
-				if (!print_diff(p.diff)) continue;
-				printf_s("\t%S\n", p.elem->display_name.c_str());
-			}
-
-			for (const auto& m : type.methods) {
-				if (m.elem->semantics == meta_method::method_semantics::normal) {
-					if (!print_diff(m.diff)) continue;
-					printf_s("\t%S;\n", m.elem->display_name.c_str());
-				}
-			}
-
-			for (const auto& e : type.events) {
-				if (!print_diff(e.diff)) continue;
-				printf_s("\t%S;\n", e.elem->display_name.c_str());
-			}
-
-			print_diff(type.diff);
-			printf_s("}\n");
-		}
-
-		printf_s("\n");
 	}
-	
+
 	return 0;
 }
 
