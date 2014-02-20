@@ -101,14 +101,16 @@ enum diff_options {
 	diffOld			= 0x1,
 	diffNew			= 0x2,
 	diffNonPublic	= 0x4,
-	diffHelp		= 0x80000000,
+	diffTypeInclude	= 0x8,
+	diffHelp = 0x80000000,
 };
 
 const struct { const wchar_t* arg; const wchar_t* arg_alt; const wchar_t* params_desc; const wchar_t* description; const diff_options options; } cmd_options[] = {
-	{ L"?",		L"help",		nullptr,		L"show this help",				diffHelp },
-	{ L"n",		L"new",			L"<filename>",	L"specify new file",			diffNew },
-	{ L"o",		L"old",			L"<filename>",	L"specify old file",			diffOld },
-	{ L"np",	L"nonpublic",	nullptr,		L"show non-public members",		diffNonPublic },
+	{ L"?",		L"help",			nullptr,		L"show this help",						diffHelp },
+	{ L"n",		L"new",				L"<filename>",	L"specify new file",					diffNew },
+	{ L"o",		L"old",				L"<filename>",	L"specify old file",					diffOld },
+	{ L"np",	L"non-public",		nullptr,		L"show non-public members",				diffNonPublic },
+	{ L"t+",	L"type-include",	L"<filter>",	L"show types when name match filter",	diffTypeInclude },
 };
 
 void print_usage() {
@@ -126,7 +128,7 @@ void print_usage() {
 
 		if(o->params_desc != nullptr) len += printf_s(" %S", o->params_desc);
 
-		if (len < 13) printf_s("\t");
+		if (len < 14) printf_s("\t");
 
 		printf_s("\t: %S\n", o->description);
 	}
@@ -144,7 +146,7 @@ int _tmain(int argc, _TCHAR* argv[])
 {
 	int options = diffNone;
 	const wchar_t* err_arg = nullptr;
-	wstring new_file, old_file;
+	wstring new_file, old_file, type_filter;
 
 	printf_s("\n MetaDiff v0.1 https://github.com/WalkingCat/MetaDiff\n\n");
 
@@ -171,6 +173,9 @@ int _tmain(int argc, _TCHAR* argv[])
 				} else if (curent_option == diffOld) {
 					if ((i + 1) < argc) old_file = argv[++i];
 					else valid = false;
+				} else if (curent_option == diffTypeInclude) {
+					if ((i + 1) < argc) type_filter = argv[++i];
+					else valid = false;
 				} else options = (options | curent_option);
 			} 
 			if (!valid && (err_arg == nullptr)) err_arg = arg;
@@ -188,8 +193,11 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	printf_s(" new file: %S%S\n", new_file.c_str(), new_file_exists ? L"" : L" (NOT EXISTS!)");
 	printf_s(" old file: %S%S\n", old_file.c_str(), old_file_exists ? L"" : L" (NOT EXISTS!)");
+
+	if (!type_filter.empty()) printf_s(" type name filter: %S\n", type_filter.c_str());
+
 	printf_s("\n");
-	
+
 	if (!(new_file_exists || old_file_exists)) return 0; // at least one of them must exists
 
 	printf_s(" diff legends: +: added, -: removed, *: changed, |: type member changed\n");
@@ -276,6 +284,8 @@ int _tmain(int argc, _TCHAR* argv[])
 		printf_s(" found no differences.\n");
 	} else {
 		for (const auto& type : diff_types) {
+			if (!type_filter.empty() && (type.elem->namespace_name.find(type_filter) == wstring::npos)) continue;
+
 			if (!print_diff(type.diff)) continue;
 
 			printf_s("%S", type.elem->display_name.c_str());
