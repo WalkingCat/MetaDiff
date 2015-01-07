@@ -79,6 +79,9 @@ bool find_changes(vector<meta_diff_elem<T>>& diffs, bool public_only, const vect
 			if (public_only && (new_elem->visibility != meta_visibility::vis_public))
 				continue; // not public, ignore.
 
+			if (filter && (filter(old_elem, new_elem) < 0))
+				continue; // ignore
+
 			diffs.push_back(meta_diff_elem<T>(meta_diff::added, new_elem));
 			any_changes = true;
 		}
@@ -238,17 +241,24 @@ int _tmain(int argc, _TCHAR* argv[])
 				continue; // both are not public, ignore. if ANY of them are public, should proceed. 
 
 			auto method_filter = [](const shared_ptr<meta_method>& old_method, const shared_ptr<meta_method>& new_method) -> int {
-				bool match = (old_method->display_name == new_method->display_name); // methods can be overloaded, so compare the full signature
+				if (new_method) {
+					if (old_method) {
+						bool match = (old_method->display_name == new_method->display_name); // methods can be overloaded, so compare the full signature
 
-				if (match) {
-					if ((old_method->semantics != meta_method::method_semantics::normal) && (new_method->semantics != meta_method::method_semantics::normal))
-						return -1; // only care about normal methods, ignore others
-					else
-						return 1;
-				} else
-					return 0; // not match, try next
+						if (match) {
+							if ((old_method->semantics != meta_method::method_semantics::normal) && (new_method->semantics != meta_method::method_semantics::normal))
+								return -1; // only care about normal methods, ignore others
+							else
+								return 1;
+						}
+					} else {
+						if (new_method->semantics != meta_method::method_semantics::normal)
+							return -1; // ignore
+					}
+				}
+				return 0;  // not match, try next
 			};
-
+			
 			bool member_changed = find_changes(type_diff.fields, public_only, old_type->second->fields, new_type.second->fields);
 			member_changed = find_changes(type_diff.properties, public_only, old_type->second->properties, new_type.second->properties) || member_changed;
 			member_changed = find_changes<meta_method>(type_diff.methods, public_only, old_type->second->methods, new_type.second->methods, method_filter) || member_changed;
