@@ -3,16 +3,6 @@
 
 using namespace std;
 
-unordered_map<wstring, shared_ptr<meta_type>> get_types(const meta_reader& reader) {
-	unordered_map<wstring, shared_ptr<meta_type>> ret;
-	auto typedefs = reader.enum_types();
-	for (const auto& t : typedefs) {
-		auto type = meta_type_reader(reader, t).get_type();
-		ret[type->name] = type;
-	}
-	return ret;
-}
-
 enum class meta_diff : int { same, removed, changed, child_changed, added };
 
 bool print_diff(meta_diff diff) {
@@ -110,8 +100,8 @@ enum diff_options {
 
 const struct { const wchar_t* arg; const wchar_t* arg_alt; const wchar_t* params_desc; const wchar_t* description; const diff_options options; } cmd_options[] = {
 	{ L"?",		L"help",			nullptr,		L"show this help",						diffHelp },
-	{ L"n",		L"new",				L"<filename>",	L"specify new file",					diffNew },
-	{ L"o",		L"old",				L"<filename>",	L"specify old file",					diffOld },
+	{ L"n",		L"new",				L"<filename>",	L"specify new file(s)",					diffNew },
+	{ L"o",		L"old",				L"<filename>",	L"specify old file(s)",					diffOld },
 	{ L"np",	L"non-public",		nullptr,		L"show non-public members",				diffNonPublic },
 	{ L"t+",	L"type-include",	L"<filter>",	L"show types when name match filter",	diffTypeInclude },
 };
@@ -145,11 +135,13 @@ struct meta_diff_type : meta_diff_elem<meta_type> {
 	meta_diff_type(meta_diff _diff, const shared_ptr<meta_type>& _elem) : meta_diff_elem<meta_type>(_diff, _elem) {}
 };
 
+vector<wstring> find_files(const wchar_t* pattern);
+
 int _tmain(int argc, _TCHAR* argv[])
 {
 	int options = diffNone;
 	const wchar_t* err_arg = nullptr;
-	wstring new_file, old_file, type_filter;
+	wstring new_files_pattern, old_files_pattern, type_filter;
 
 	printf_s("\n MetaDiff v0.1 https://github.com/WalkingCat/MetaDiff\n\n");
 
@@ -171,10 +163,10 @@ int _tmain(int argc, _TCHAR* argv[])
 			if (curent_option != diffNone) {
 				valid = true;
 				if (curent_option == diffNew) {
-					if ((i + 1) < argc) new_file = argv[++i];
+					if ((i + 1) < argc) new_files_pattern = argv[++i];
 					else valid = false;
 				} else if (curent_option == diffOld) {
-					if ((i + 1) < argc) old_file = argv[++i];
+					if ((i + 1) < argc) old_files_pattern = argv[++i];
 					else valid = false;
 				} else if (curent_option == diffTypeInclude) {
 					if ((i + 1) < argc) type_filter = argv[++i];
@@ -182,41 +174,49 @@ int _tmain(int argc, _TCHAR* argv[])
 				} else options = (options | curent_option);
 			} 
 			if (!valid && (err_arg == nullptr)) err_arg = arg;
-		} else { if (new_file.empty()) new_file = arg; else err_arg = arg; }
+		} else { if (new_files_pattern.empty()) new_files_pattern = arg; else err_arg = arg; }
 	}
 
-	if ((new_file.empty() && old_file.empty()) || (err_arg != nullptr) || (options & diffHelp)) {
+	if ((new_files_pattern.empty() && old_files_pattern.empty()) || (err_arg != nullptr) || (options & diffHelp)) {
 		if (err_arg != nullptr) printf_s("\tError in option: %S\n\n", err_arg);
 		print_usage();
 		return 0;
 	}
 
-	const bool new_file_exists = PathFileExists(new_file.c_str()) != FALSE;
-	const bool old_file_exists = PathFileExists(old_file.c_str()) != FALSE;
+	auto new_files = find_files(new_files_pattern.c_str());
+	auto old_files = find_files(old_files_pattern.c_str());
 
-	printf_s(" new file: %S%S\n", new_file.c_str(), new_file_exists ? L"" : L" (NOT EXISTS!)");
-	printf_s(" old file: %S%S\n", old_file.c_str(), old_file_exists ? L"" : L" (NOT EXISTS!)");
+	printf_s(" new files: %S%S\n", new_files_pattern.c_str(), !new_files.empty() ? L"" : L" (NOT EXISTS!)");
+	printf_s(" old files: %S%S\n", old_files_pattern.c_str(), !old_files.empty() ? L"" : L" (NOT EXISTS!)");
 
 	if (!type_filter.empty()) printf_s(" type name filter: %S\n", type_filter.c_str());
 
 	printf_s("\n");
 
-	if (!(new_file_exists || old_file_exists)) return 0; // at least one of them must exists
+	if (new_files.empty() & old_files.empty()) return 0; // at least one of them must exists
 
 	printf_s(" diff legends: +: added, -: removed, *: changed, |: type member changed\n");
 	printf_s("\n");
 
-	meta_reader new_reader, old_reader;
+	auto get_meta_types = [](const vector<wstring>& files) -> unordered_map<wstring, shared_ptr<meta_type>> {
+		unordered_map<wstring, shared_ptr<meta_type>> ret;
+		for (const auto& file : files) {
+			meta_reader reader;
+			if (!reader.init(file.c_str())) {
+				printf_s("Can't read metadata from file %S\n", file.c_str());
+				continue;
+			}
+			auto typedefs = reader.enum_types();
+			for (const auto& t : typedefs) {
+				auto type = meta_type_reader(reader, t).get_type();
+				ret[type->name] = type;
+			}
+		}
+		return ret;
+	};
 
-	// if a file does not exist, don't try to open it, just pretend its fine
-	const bool new_reader_inited = (!new_file_exists) || new_reader.init(new_file.c_str());
-	const bool old_reader_inited = (!old_file_exists) || old_reader.init(old_file.c_str());
-
-	if (!new_reader_inited) { printf_s("Can't read metadata from new file %S\n", new_file.c_str()); return 0; }
-	if (!old_reader_inited) { printf_s("Can't read metadata from old file %S\n", old_file.c_str()); return 0; }
-
-	const unordered_map<wstring, shared_ptr<meta_type>> new_types = get_types(new_reader);
-	const unordered_map<wstring, shared_ptr<meta_type>> old_types = get_types(old_reader);
+	const auto new_types = get_meta_types(new_files);
+	const auto old_types = get_meta_types(old_files);
 
 	vector<meta_diff_type> diff_types;
 
@@ -353,3 +353,22 @@ int _tmain(int argc, _TCHAR* argv[])
 	return 0;
 }
 
+vector<wstring> find_files(const wchar_t * pattern)
+{
+	vector<wstring> ret;
+	wchar_t path[MAX_PATH] = {};
+	wcscpy_s(path, pattern);
+	WIN32_FIND_DATA fd;
+	HANDLE find = ::FindFirstFile(pattern, &fd);
+	if (find != INVALID_HANDLE_VALUE) {
+		do {
+			if ((fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0) {
+				PathRemoveFileSpec(path);
+				PathCombine(path, path, fd.cFileName);
+				ret.emplace_back(path);
+			}
+		} while (::FindNextFile(find, &fd));
+		::FindClose(find);
+	}
+	return ret;
+}
