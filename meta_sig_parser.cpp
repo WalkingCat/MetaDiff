@@ -26,14 +26,19 @@ std::wstring meta_sig_parser::parse_property(wchar_t* name)
 	return parse_element_type() + L" " + std::wstring(name);
 }
 
-std::wstring meta_sig_parser::parse_method(const wchar_t* name, const std::vector<std::wstring>& param_names, bool omit_return_type)
+std::wstring meta_sig_parser::parse_method(const wchar_t* name, const std::vector<std::wstring>& raw_param_names, bool omit_return_type)
 {
 	std::wstring ret = name;
-
+	std::vector<std::wstring> param_names = raw_param_names;
 	CorCallingConvention calling_conv = (CorCallingConvention) uncompress_data(); // calling convention
 	ULONG param_count = uncompress_data();
 
 	std::wstring return_type = parse_element_type();
+	if (return_type != L"void")
+	{
+	    param_names.erase(param_names.begin());
+	}
+
 	if (!omit_return_type) ret = return_type  + L" " + ret;
 
 	if (param_count != 0) {
