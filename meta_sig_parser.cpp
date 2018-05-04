@@ -34,7 +34,7 @@ std::wstring meta_sig_parser::parse_method(const wchar_t* name, const std::vecto
 	ULONG param_count = uncompress_data();
 
 	std::wstring return_type = parse_element_type();
-	if (return_type != L"void")
+	if (return_type != L"void" && param_names.size() > 0)
 	{
 	    param_names.erase(param_names.begin());
 	}
