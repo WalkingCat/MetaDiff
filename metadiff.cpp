@@ -143,7 +143,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	const wchar_t* err_arg = nullptr;
 	wstring new_files_pattern, old_files_pattern, type_filter;
 
-	printf_s("\n MetaDiff v0.1 https://github.com/WalkingCat/MetaDiff\n\n");
+	printf_s("\n MetaDiff v0.2 https://github.com/WalkingCat/MetaDiff\n\n");
 
 	for(int i = 1; i < argc; ++i) {
 		const wchar_t* arg = argv[i];
