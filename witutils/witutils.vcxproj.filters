@@ -3,15 +3,13 @@
   <ItemGroup>
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
-    <ClInclude Include="meta_sig_parser.h" />
-    <ClInclude Include="meta_utils.h" />
-    <ClInclude Include="meta_reader.h" />
+    <ClInclude Include="find_files.h" />
+    <ClInclude Include="find_files_wcs.h" />
+    <ClInclude Include="diff_utils.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="metadiff.cpp" />
     <ClCompile Include="stdafx.cpp" />
-    <ClCompile Include="meta_sig_parser.cpp" />
-    <ClCompile Include="meta_utils.cpp" />
-    <ClCompile Include="meta_reader.cpp" />
+    <ClCompile Include="find_files.cpp" />
+    <ClCompile Include="find_files_wcs.cpp" />
   </ItemGroup>
 </Project>
