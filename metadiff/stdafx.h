@@ -14,6 +14,9 @@
 #include <algorithm>
 #include <functional>
 
+#include "../witutils/find_files.h"
+#include "../witutils/diff_utils.h"
+
 #define VC_EXTRALEAN
 #include <windows.h>
 #include <atlbase.h>
