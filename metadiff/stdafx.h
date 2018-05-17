@@ -15,6 +15,7 @@
 #include <functional>
 
 #include "../witutils/find_files.h"
+#include "../witutils/find_files_wcs.h"
 #include "../witutils/diff_utils.h"
 
 #define VC_EXTRALEAN

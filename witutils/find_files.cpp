@@ -24,3 +24,12 @@ map<wstring, wstring> find_files(const wchar_t * pattern)
 	}
 	return ret;
 }
+
+std::map<std::wstring, std::map<std::wstring, std::wstring>> find_files_ex(const std::wstring& pattern)
+{
+	//TODO: support recursive
+	std::map<std::wstring, std::map<std::wstring, std::wstring>> ret;
+	auto files = find_files(pattern.c_str());
+	if (!files.empty()) ret[wstring()] = move(files);
+	return ret;
+}
