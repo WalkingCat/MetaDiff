@@ -1,6 +1,8 @@
 #pragma once
 #include <map>
 #include <set>
+#include <vector>
+#include <deque>
 
 template<typename TKey, typename TValue, typename TFunc>
 void diff_maps(const std::map<TKey, TValue>& new_map, const std::map<TKey, TValue>& old_map, TFunc& func)
@@ -119,21 +121,65 @@ void diff_sequences(const std::vector<TValue>& new_seq, const std::vector<TValue
 		r = p.k;
 	}
 
+	auto report_change = [&](long long x, long long y) {
+		auto a = (x >= 0) ? &A[size_t(x)] : nullptr;
+		auto b = (y >= 0) ? &B[size_t(y)] : nullptr;
+		if (swapped) func(b, a); else func(a, b);
+	};
+
+	deque<long long> xs, ys;
+	auto report_changes = [&](bool all) {
+		const auto xsize = xs.size(), ysize = ys.size();
+		const auto min_size = (xsize < ysize) ? xsize : ysize;
+		for (size_t i = 0; i < min_size; ++i) {
+			report_change(xs[i], ys[i]);
+		}
+		if (all) {
+			for (size_t i = min_size; i < xsize; ++i) {
+				report_change(xs[i], -1);
+			}
+			xs.clear();
+			for (size_t i = min_size; i < ysize; ++i) {
+				report_change(-1, ys[i]);
+			}
+			ys.clear();
+		} else {
+			xs.erase(xs.begin(), xs.begin() + min_size);
+			ys.erase(ys.begin(), ys.begin() + min_size);
+		}
+	};
+
+	auto record_change = [&](long long x, long long y) {
+		if ((x >= 0) && (y >=0)) {
+			report_changes(true);
+			report_change(x, y);
+		} else if (x >= 0) {
+			xs.push_back(x);
+			report_changes(false);
+		} else if (y >= 0) {
+			ys.push_back(y);
+			report_changes(false);
+		} else {
+			/// should not reach here
+		}
+	};
+
 	long long x = 0, y = 0; // coordinates
 	for (size_t i = epc.size(); i != 0; --i) {
 		const auto& p = epc[i - 1];
 		while ((x < p.x) || (y < p.y)) {
 			if ((p.y - p.x) >(y - x)) {
-				if (swapped) func(&B[size_t(y)], nullptr); else func(nullptr, &B[size_t(y)]);
+				record_change(-1, y);
 				++y;
 			} else if ((p.y - p.x) < (y - x)) {
-				if (swapped) func(nullptr, &A[size_t(x)]); else func(&A[size_t(x)], nullptr);
+				record_change(x, -1);
 				++x;
 			} else {
-				if (swapped) func(&B[size_t(y)], &A[size_t(x)]); else func(&A[size_t(x)], &B[size_t(y)]);
+				record_change(x, y);
 				++x; ++y;
 			}
 		}
 	}
+	report_changes(true);
 }
 
