@@ -7,12 +7,12 @@ enum class meta_diff : int { same, removed, changed, child_changed, added };
 
 bool print_diff(meta_diff diff) {
 	switch (diff) {
-	case meta_diff::same: /* wprintf_s(L"     = "); return true;*/ return false;
-	case meta_diff::removed: wprintf_s(L"     - "); return true;
-	case meta_diff::changed: wprintf_s(L"     * "); return true;
-	case meta_diff::child_changed: wprintf_s(L"     | "); return true;
-	case meta_diff::added: wprintf_s(L"     + "); return true;
-	default: wprintf_s(L"? "); return true;
+		case meta_diff::same: /* wprintf_s(L"     = "); return true;*/ return false;
+		case meta_diff::removed: wprintf_s(L"     - "); return true;
+		case meta_diff::changed: wprintf_s(L"     * "); return true;
+		case meta_diff::child_changed: wprintf_s(L"     | "); return true;
+		case meta_diff::added: wprintf_s(L"     + "); return true;
+		default: wprintf_s(L"? "); return true;
 	}
 }
 
@@ -85,17 +85,18 @@ bool find_changes(vector<meta_diff_elem<T>>& diffs, bool public_only, const vect
 			any_changes = true;
 		}
 	}
-	
+
 	return any_changes;
 }
 
 enum diff_options {
-	diffNone		= 0x0,
-	diffOld			= 0x1,
-	diffNew			= 0x2,
-	diffWcs			= 0x8,
-	diffNonPublic	= 0x10,
-	diffTypeInclude	= 0x20,
+	diffNone = 0x0,
+	diffOld = 0x1,
+	diffNew = 0x2,
+	diffRec = 0x4,
+	diffWcs = 0x8,
+	diffNonPublic = 0x10,
+	diffTypeInclude = 0x20,
 	diffHelp = 0x80000000,
 };
 
@@ -103,6 +104,7 @@ const struct { const wchar_t* arg; const wchar_t* arg_alt; const wchar_t* params
 	{ L"?",		L"help",			nullptr,		L"show this help",						diffHelp },
 	{ L"n",		L"new",				L"<filename>",	L"specify new file(s)",					diffNew },
 	{ L"o",		L"old",				L"<filename>",	L"specify old file(s)",					diffOld },
+	{ L"r",		L"recursive",		nullptr,		L"search folder recursively",			diffRec },
 	{ nullptr,	L"wcs",				nullptr,		L"folder is Windows Component Store",	diffWcs },
 	{ L"np",	L"non-public",		nullptr,		L"show non-public members",				diffNonPublic },
 	{ L"t+",	L"type-include",	L"<filter>",	L"show types when name match filter",	diffTypeInclude },
@@ -114,14 +116,14 @@ void print_usage() {
 		if (o->arg != nullptr) wprintf_s(L"\t-%ls", o->arg); else wprintf_s(L"\t");
 
 		int len = 0;
-		if (o->arg_alt != nullptr){
+		if (o->arg_alt != nullptr) {
 			len = wcslen(o->arg_alt);
 			wprintf_s(L"\t--%ls", o->arg_alt);
 		} else wprintf_s(L"\t");
 
 		if (len < 6) wprintf_s(L"\t");
 
-		if(o->params_desc != nullptr) len += wprintf_s(L" %ls", o->params_desc);
+		if (o->params_desc != nullptr) len += wprintf_s(L" %ls", o->params_desc);
 
 		if (len < 14) wprintf_s(L"\t");
 
@@ -147,13 +149,13 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	wprintf_s(L"\n MetaDiff v0.2 https://github.com/WalkingCat/MetaDiff\n\n");
 
-	for(int i = 1; i < argc; ++i) {
+	for (int i = 1; i < argc; ++i) {
 		const wchar_t* arg = argv[i];
 		if ((arg[0] == '-') || ((arg[0] == '/'))) {
 			diff_options curent_option = diffNone;
 			if ((arg[0] == '-') && (arg[1] == '-')) {
 				for (auto o = std::begin(cmd_options); o != std::end(cmd_options); ++o) {
-					if ((o->arg_alt != nullptr) &&(_wcsicmp(arg + 2, o->arg_alt) == 0)) { curent_option = o->options; }
+					if ((o->arg_alt != nullptr) && (_wcsicmp(arg + 2, o->arg_alt) == 0)) { curent_option = o->options; }
 				}
 			} else {
 				for (auto o = std::begin(cmd_options); o != std::end(cmd_options); ++o) {
@@ -174,7 +176,7 @@ int _tmain(int argc, _TCHAR* argv[])
 					if ((i + 1) < argc) type_filter = argv[++i];
 					else valid = false;
 				} else options = (options | curent_option);
-			} 
+			}
 			if (!valid && (err_arg == nullptr)) err_arg = arg;
 		} else { if (new_files_pattern.empty()) new_files_pattern = arg; else err_arg = arg; }
 	}
@@ -186,10 +188,11 @@ int _tmain(int argc, _TCHAR* argv[])
 	}
 
 	const bool is_wcs = ((options & diffWcs) == diffWcs);
+	const bool is_recursive = ((options & diffRec) == diffRec);
 	const wchar_t def_file_pattern[] = L"*.winmd";
 
-	auto new_file_groups = is_wcs ? find_files_wcs_ex(new_files_pattern, def_file_pattern) : find_files_ex(new_files_pattern.c_str());
-	auto old_file_groups = is_wcs ? find_files_wcs_ex(old_files_pattern, def_file_pattern) : find_files_ex(old_files_pattern.c_str());
+	auto new_file_groups = is_wcs ? find_files_wcs_ex(new_files_pattern, def_file_pattern) : find_files_ex(new_files_pattern.c_str(), is_recursive);
+	auto old_file_groups = is_wcs ? find_files_wcs_ex(old_files_pattern, def_file_pattern) : find_files_ex(old_files_pattern.c_str(), is_recursive);
 
 	wprintf_s(L" new files: %ls%ls\n", new_files_pattern.c_str(), !new_file_groups.empty() ? L"" : L" (NOT EXISTS!)");
 	wprintf_s(L" old files: %ls%ls\n", old_files_pattern.c_str(), !old_file_groups.empty() ? L"" : L" (NOT EXISTS!)");
