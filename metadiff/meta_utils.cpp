@@ -1,19 +1,19 @@
 #include "stdafx.h"
 #include "meta_utils.h"
 
-std::wstring meta_utils::fix_generics_name( const std::wstring& name, int generics_count )
+std::wstring meta_utils::fix_generics_name(const std::wstring& name, int generics_count)
 {
 	std::wstring ret = name;
 	if (generics_count > 0) {
 		std::wstring appendix = L"`" + format_integer(generics_count);
 		auto pos = ret.rfind(appendix);
-		if (pos == (ret.length() - appendix.length()))
+		if ((pos != std::wstring::npos) && (pos == (ret.length() - appendix.length())))
 			ret.erase(pos);
 	}
 	return ret;
 }
 
-std::wstring meta_utils::Utf8ToUtf16( const std::string& str )
+std::wstring meta_utils::Utf8ToUtf16(const std::string& str)
 {
 	std::wstring ret;
 
