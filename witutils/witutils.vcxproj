@@ -151,6 +151,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="cmdl_utils.h" />
+    <ClInclude Include="diff_commons.h" />
     <ClInclude Include="diff_utils.h" />
     <ClInclude Include="find_files.h" />
     <ClInclude Include="find_files_wcs.h" />
@@ -158,6 +160,8 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="cmdl_utils.cpp" />
+    <ClCompile Include="diff_commons.cpp" />
     <ClCompile Include="find_files.cpp" />
     <ClCompile Include="find_files_wcs.cpp" />
     <ClCompile Include="stdafx.cpp">

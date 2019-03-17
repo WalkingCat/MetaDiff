@@ -5,7 +5,7 @@
 #include <deque>
 
 template<typename TKey, typename TValue, typename TFunc>
-void diff_maps(const std::map<TKey, TValue>& new_map, const std::map<TKey, TValue>& old_map, TFunc& func)
+void diff_maps(const std::map<TKey, TValue>& new_map, const std::map<TKey, TValue>& old_map, const TFunc& func)
 {
 	auto new_it = new_map.begin();
 	auto old_it = old_map.begin();
@@ -41,7 +41,7 @@ void diff_maps(const std::map<TKey, TValue>& new_map, const std::map<TKey, TValu
 }
 
 template<typename TValue, typename TFunc>
-void diff_sets(const std::set<TValue>& new_set, const std::set<TValue>& old_set, TFunc& func)
+void diff_sets(const std::set<TValue>& new_set, const std::set<TValue>& old_set, const TFunc& func)
 {
 	auto new_it = new_set.begin();
 	auto old_it = old_set.begin();
@@ -83,8 +83,8 @@ void diff_sequences(const std::vector<TValue>& new_seq, const std::vector<TValue
 	const size_t M = std::size(A), N = std::size(B), delta = N - M, offset = M + 1;
 
 	struct P { long long x; long long y; long long k; };
-	vector<P> path_coordinates;
-	vector<long long> path(M + N + 3, -1);
+	std::vector<P> path_coordinates;
+	std::vector<long long> path(M + N + 3, -1);
 
 	auto snake = [&](const long long& k, const long long& above, const long long& below) -> long long {
 		const long long r = above > below ? path[(size_t)k - 1 + offset] : path[(size_t)k + 1 + offset];
@@ -101,7 +101,7 @@ void diff_sequences(const std::vector<TValue>& new_seq, const std::vector<TValue
 		return y;
 	};
 
-	vector<long long> fp(M + N + 3, -1);
+	std::vector<long long> fp(M + N + 3, -1);
 	for (long long p = 0; ; ++p) {
 		for (long long k = -p; k <= static_cast<long long>(delta) - 1; ++k) {
 			fp[size_t(k + offset)] = snake(k, fp[size_t(k - 1 + offset)] + 1, fp[size_t(k + 1 + offset)]);
@@ -114,7 +114,7 @@ void diff_sequences(const std::vector<TValue>& new_seq, const std::vector<TValue
 		if (fp[delta + offset] == static_cast<long long>(N)) break;
 	}
 
-	vector<P> epc;
+	std::vector<P> epc;
 	for (long long r = path[delta + offset]; r != -1;) {
 		const auto& p = path_coordinates[size_t(r)];
 		epc.push_back(P{ p.x, p.y, 0 });
@@ -127,7 +127,7 @@ void diff_sequences(const std::vector<TValue>& new_seq, const std::vector<TValue
 		if (swapped) func(b, a); else func(a, b);
 	};
 
-	deque<long long> xs, ys;
+	std::deque<long long> xs, ys;
 	auto report_changes = [&](bool all) {
 		const auto xsize = xs.size(), ysize = ys.size();
 		const auto min_size = (xsize < ysize) ? xsize : ysize;

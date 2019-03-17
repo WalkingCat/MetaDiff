@@ -23,6 +23,8 @@ vector<unsigned char> read_manifest(const wchar_t* path) {
 	vector<unsigned char> ret;
 	FILE* file = nullptr;
 	_wfopen_s(&file, path, L"rb");
+	if (file == nullptr) return ret;
+
 	fseek(file, 0, SEEK_END);
 	const auto len = ftell(file);
 	ret.resize(len);
