@@ -213,7 +213,7 @@ int _tmain(int argc, _TCHAR* argv[])
 				ret[type->name] = type;
 			}
 		} else {
-			wprintf_s(L"Can't read metadata from file %ls\n", file.c_str());
+			// wprintf_s(L"Can't read metadata from file %ls\n", file.c_str());
 		}
 		return ret;
 	};
