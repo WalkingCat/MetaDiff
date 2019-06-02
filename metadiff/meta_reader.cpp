@@ -27,16 +27,20 @@ meta_reader::meta_reader() {}
 
 bool meta_reader::init(const wchar_t* filename)
 {
-	typedef HRESULT (__stdcall *MetaDataGetDispenser_func)(__in REFCLSID rclsid, __in REFIID riid, __deref_out LPVOID FAR * ppv);
-	MetaDataGetDispenser_func _MetaDataGetDispenser = nullptr;
+	typedef HRESULT(__stdcall *MetaDataGetDispenser_func)(__in REFCLSID rclsid, __in REFIID riid, __deref_out LPVOID FAR * ppv);
+	static const MetaDataGetDispenser_func _MetaDataGetDispenser = [] {
+		MetaDataGetDispenser_func ret = nullptr;
 
-	auto rometadata = LoadLibraryW(L"RoMetadata.dll");
-	if (rometadata != NULL) _MetaDataGetDispenser = (MetaDataGetDispenser_func) GetProcAddress(rometadata, "MetaDataGetDispenser");
+		auto rometadata = LoadLibraryW(L"RoMetadata.dll");
+		if (rometadata != nullptr) ret = (MetaDataGetDispenser_func)GetProcAddress(rometadata, "MetaDataGetDispenser");
 
-	if (_MetaDataGetDispenser == nullptr) {
-		auto mscoree = LoadLibraryW(L"MSCOREE.dll");
-		if (mscoree != NULL) _MetaDataGetDispenser = (MetaDataGetDispenser_func) GetProcAddress(mscoree, "MetaDataGetDispenser");		
-	}
+		if (ret == nullptr) {
+			auto mscoree = LoadLibraryW(L"MSCOREE.dll");
+			if (mscoree != NULL) ret = (MetaDataGetDispenser_func)GetProcAddress(mscoree, "MetaDataGetDispenser");
+		}
+
+		return ret;
+	}();
 
 	if (_MetaDataGetDispenser != nullptr) {
 		CComPtr<IMetaDataDispenserEx> dispenser;
@@ -48,7 +52,7 @@ bool meta_reader::init(const wchar_t* filename)
 	return false;
 }
 
-std::wstring meta_reader::get_name( mdToken token )
+std::wstring meta_reader::get_name(mdToken token)
 {
 	if (metadata_import) {
 		MDUTF8CSTR name = nullptr;
@@ -81,26 +85,26 @@ std::wstring meta_reader::get_name( mdToken token )
 
 }
 
-std::wstring meta_reader::get_full_name( mdToken token )
+std::wstring meta_reader::get_full_name(mdToken token)
 {
 	if (metadata_import) {
 		if (TypeFromToken(token) == mdtTypeDef) {
 			wchar_t name[1024] = {};
-			if(SUCCEEDED(metadata_import->GetTypeDefProps(token, name, _countof(name), NULL, NULL, NULL))) {
+			if (SUCCEEDED(metadata_import->GetTypeDefProps(token, name, _countof(name), NULL, NULL, NULL))) {
 				return std::wstring(name);
 			}
 		}
 
 		if (TypeFromToken(token) == mdtTypeRef) {
 			wchar_t name[1024] = {};
-			if(SUCCEEDED(metadata_import->GetTypeRefProps(token, NULL, name, _countof(name), NULL))) {
+			if (SUCCEEDED(metadata_import->GetTypeRefProps(token, NULL, name, _countof(name), NULL))) {
 				return std::wstring(name);
 			}
 		}
 
 		if (TypeFromToken(token) == mdtGenericParam) {
 			wchar_t name[1024] = {};
-			if(SUCCEEDED(metadata_import->GetGenericParamProps(token, NULL, NULL, NULL, NULL, name, _countof(name), NULL))) {
+			if (SUCCEEDED(metadata_import->GetGenericParamProps(token, NULL, NULL, NULL, NULL, name, _countof(name), NULL))) {
 				return std::wstring(name);
 			}
 		}
@@ -117,7 +121,7 @@ std::vector<mdToken> meta_reader::enum_tokens(std::function<HRESULT(HCORENUM*, m
 	if (metadata_import) {
 		HCORENUM e = NULL; mdTypeDef tokens[256] = {}; ULONG count = 0;
 		while (enum_func(&e, tokens, _countof(tokens), &count) == S_OK) {
-			for(ULONG i = 0; i < count; i++) {
+			for (ULONG i = 0; i < count; i++) {
 				ret.push_back(tokens[i]);
 			}
 		}
@@ -129,49 +133,49 @@ std::vector<mdToken> meta_reader::enum_tokens(std::function<HRESULT(HCORENUM*, m
 
 std::vector<mdTypeDef> meta_reader::enum_types() const
 {
-	return enum_tokens([&](HCORENUM* en, mdToken* tokens, ULONG max, ULONG* count){ return metadata_import->EnumTypeDefs(en, tokens, max, count); });
+	return enum_tokens([&](HCORENUM* en, mdToken* tokens, ULONG max, ULONG* count) { return metadata_import->EnumTypeDefs(en, tokens, max, count); });
 }
 
 std::vector<mdFieldDef> meta_reader::enum_fields(mdTypeDef type)
 {
-	return enum_tokens([&](HCORENUM* en, mdToken* tokens, ULONG max, ULONG* count){ return metadata_import->EnumFields(en, type, tokens, max, count); });
+	return enum_tokens([&](HCORENUM* en, mdToken* tokens, ULONG max, ULONG* count) { return metadata_import->EnumFields(en, type, tokens, max, count); });
 }
 
 std::vector<mdProperty> meta_reader::enum_properties(mdTypeDef type)
 {
-	return enum_tokens([&](HCORENUM* en, mdToken* tokens, ULONG max, ULONG* count){ return metadata_import->EnumProperties(en, type, tokens, max, count); });
+	return enum_tokens([&](HCORENUM* en, mdToken* tokens, ULONG max, ULONG* count) { return metadata_import->EnumProperties(en, type, tokens, max, count); });
 }
 
 std::vector<mdMethodDef> meta_reader::enum_methods(mdTypeDef type)
 {
-	return enum_tokens([&](HCORENUM* en, mdToken* tokens, ULONG max, ULONG* count){ return metadata_import->EnumMethods(en, type, tokens, max, count); });
+	return enum_tokens([&](HCORENUM* en, mdToken* tokens, ULONG max, ULONG* count) { return metadata_import->EnumMethods(en, type, tokens, max, count); });
 }
 
 std::vector<mdEvent> meta_reader::enum_events(mdTypeDef type)
 {
-	return enum_tokens([&](HCORENUM* en, mdToken* tokens, ULONG max, ULONG* count){ return metadata_import->EnumEvents(en, type, tokens, max, count); });
+	return enum_tokens([&](HCORENUM* en, mdToken* tokens, ULONG max, ULONG* count) { return metadata_import->EnumEvents(en, type, tokens, max, count); });
 }
 
-std::vector<mdGenericParam> meta_reader::enum_generic_params( mdToken type_or_method )
+std::vector<mdGenericParam> meta_reader::enum_generic_params(mdToken type_or_method)
 {
-	return enum_tokens([&](HCORENUM* en, mdToken* tokens, ULONG max, ULONG* count){ return metadata_import->EnumGenericParams(en, type_or_method, tokens, max, count); });
+	return enum_tokens([&](HCORENUM* en, mdToken* tokens, ULONG max, ULONG* count) { return metadata_import->EnumGenericParams(en, type_or_method, tokens, max, count); });
 }
 
-std::vector<mdParamDef> meta_reader::enum_params( mdMethodDef method )
+std::vector<mdParamDef> meta_reader::enum_params(mdMethodDef method)
 {
-	return enum_tokens([&](HCORENUM* en, mdToken* tokens, ULONG max, ULONG* count){ return metadata_import->EnumParams(en, method, tokens, max, count); });
+	return enum_tokens([&](HCORENUM* en, mdToken* tokens, ULONG max, ULONG* count) { return metadata_import->EnumParams(en, method, tokens, max, count); });
 }
 
-std::shared_ptr<meta_field> meta_type_reader::get_field( mdFieldDef token )
+std::shared_ptr<meta_field> meta_type_reader::get_field(mdFieldDef token)
 {
 	auto ret = make_shared<meta_field>();
 	ret->token = token;
 
 	wchar_t name[1024] = {}; PCCOR_SIGNATURE sig = nullptr; ULONG sig_size = 0;
 	DWORD value_type = 0; UVCP_CONSTANT value = nullptr; ULONG value_length = 0;
-	if(SUCCEEDED(metadata_import->GetFieldProps(token, nullptr, name, _countof(name), nullptr, &ret->attributes, &sig, &sig_size, &value_type, &value, &value_length))) {
+	if (SUCCEEDED(metadata_import->GetFieldProps(token, nullptr, name, _countof(name), nullptr, &ret->attributes, &sig, &sig_size, &value_type, &value, &value_length))) {
 		ret->name = name;
-		
+
 		if ((result->semantics == meta_type::type_semantics::enum_type) && IsFdStatic(ret->attributes) && IsFdPublic(ret->attributes)) {
 			ret->visibility = meta_visibility::vis_public;
 			ret->display_name = ret->name;
@@ -211,14 +215,14 @@ std::shared_ptr<meta_field> meta_type_reader::get_field( mdFieldDef token )
 	return ret;
 }
 
-std::shared_ptr<meta_property> meta_type_reader::get_property( mdProperty token )
+std::shared_ptr<meta_property> meta_type_reader::get_property(mdProperty token)
 {
 	auto ret = make_shared<meta_property>();
 	ret->token = token;
 
 	wchar_t name[1024] = {}; PCCOR_SIGNATURE sig = nullptr; ULONG sig_size = 0;
 	mdMethodDef getter = mdMethodDefNil, setter = mdMethodDefNil;
-	if(SUCCEEDED(metadata_import->GetPropertyProps(token, nullptr, name, _countof(name), nullptr, &ret->attributes, &sig, &sig_size, nullptr, nullptr, nullptr, &setter, &getter, nullptr, 0, nullptr))) {
+	if (SUCCEEDED(metadata_import->GetPropertyProps(token, nullptr, name, _countof(name), nullptr, &ret->attributes, &sig, &sig_size, nullptr, nullptr, nullptr, &setter, &getter, nullptr, 0, nullptr))) {
 		ret->name = name;
 
 		ret->display_name = meta_sig_parser(metadata_import, sig, sig_size, type_generic_param_names).parse_property(name);
@@ -240,14 +244,14 @@ std::shared_ptr<meta_property> meta_type_reader::get_property( mdProperty token 
 
 		ret->display_name += L" {";
 		if (!IsNilToken(getter)) {
-			if(property_visibiliy != getter_visibility) {
+			if (property_visibiliy != getter_visibility) {
 				auto access_modifier = format_visibility(getter_visibility);
 				if (!access_modifier.empty()) ret->display_name += L" " + access_modifier;
 			}
 			ret->display_name += L" get;";
 		}
 		if (!IsNilToken(setter)) {
-			if(property_visibiliy != setter_visibility) {
+			if (property_visibiliy != setter_visibility) {
 				auto access_modifier = format_visibility(setter_visibility);
 				if (!access_modifier.empty()) ret->display_name += L" " + access_modifier;
 			}
@@ -263,13 +267,13 @@ std::shared_ptr<meta_property> meta_type_reader::get_property( mdProperty token 
 
 }
 
-std::shared_ptr<meta_method> meta_type_reader::get_method( mdMethodDef token )
+std::shared_ptr<meta_method> meta_type_reader::get_method(mdMethodDef token)
 {
 	auto ret = make_shared<meta_method>();
 	ret->token = token;
 
 	wchar_t name[1024] = {}; PCCOR_SIGNATURE sig = nullptr; ULONG sig_size = 0;
-	if(SUCCEEDED(metadata_import->GetMethodProps(token, nullptr, name, _countof(name), nullptr, &ret->attributes, &sig, &sig_size, nullptr, nullptr))) {
+	if (SUCCEEDED(metadata_import->GetMethodProps(token, nullptr, name, _countof(name), nullptr, &ret->attributes, &sig, &sig_size, nullptr, nullptr))) {
 		ret->name = name;
 
 		std::vector<std::wstring> param_names;
@@ -301,7 +305,7 @@ std::shared_ptr<meta_method> meta_type_reader::get_method( mdMethodDef token )
 		} else {
 			ret->display_name = meta_sig_parser(metadata_import, sig, sig_size, type_generic_param_names).parse_method(name, param_names);
 		}
-		
+
 		if (IsMdStatic(ret->attributes)) ret->display_name = L"static " + ret->display_name;
 
 		if (IsMdPrivate(ret->attributes)) ret->visibility = meta_visibility::vis_private;
@@ -319,14 +323,14 @@ std::shared_ptr<meta_method> meta_type_reader::get_method( mdMethodDef token )
 	return ret;
 }
 
-std::shared_ptr<meta_event> meta_type_reader::get_event( mdEvent token )
+std::shared_ptr<meta_event> meta_type_reader::get_event(mdEvent token)
 {
 	auto ret = make_shared<meta_event>();
 	ret->token = token;
 
 	wchar_t name[1024] = {}; PCCOR_SIGNATURE sig = nullptr; ULONG sig_size = 0;
 	mdToken type = mdTokenNil; 	mdMethodDef add = mdMethodDefNil, remove = mdMethodDefNil, fire = mdMethodDefNil;
-	if(SUCCEEDED(metadata_import->GetEventProps(token, nullptr, name, _countof(name), nullptr, &ret->attributes, &type, &add, &remove, &fire, nullptr, 0, nullptr))) {
+	if (SUCCEEDED(metadata_import->GetEventProps(token, nullptr, name, _countof(name), nullptr, &ret->attributes, &type, &add, &remove, &fire, nullptr, 0, nullptr))) {
 		ret->name = name;
 		ret->display_name = get_full_name(type) + L" " + ret->name;
 	}
@@ -344,12 +348,12 @@ std::shared_ptr<meta_type> meta_type_reader::get_type()
 {
 	wchar_t name[1024] = {}; PCCOR_SIGNATURE sig = nullptr; ULONG sig_size = 0;
 	mdToken extends = mdTokenNil;
-	if(SUCCEEDED(metadata_import->GetTypeDefProps(result->token, name, _countof(name), nullptr, &result->attributes, &extends))) {
+	if (SUCCEEDED(metadata_import->GetTypeDefProps(result->token, name, _countof(name), nullptr, &result->attributes, &extends))) {
 		result->name = name;
 
 		auto self_name = get_name(result->token);
 		auto pos = result->name.rfind(self_name);
-		if (pos > 1) result->namespace_name = result->name.substr(0, pos-1);
+		if (pos > 1) result->namespace_name = result->name.substr(0, pos - 1);
 
 		wstring semantic_name;
 		wstring extends_name;
@@ -409,7 +413,7 @@ std::shared_ptr<meta_type> meta_type_reader::get_type()
 			auto methods = enum_methods(result->token);
 			for (const auto& m : methods) {
 				wchar_t method_name[1024] = {}; PCCOR_SIGNATURE sig = nullptr; ULONG sig_size = 0; DWORD method_attr;
-				if(SUCCEEDED(metadata_import->GetMethodProps(m, nullptr, method_name, _countof(method_name), nullptr, &method_attr, &sig, &sig_size, nullptr, nullptr))) {
+				if (SUCCEEDED(metadata_import->GetMethodProps(m, nullptr, method_name, _countof(method_name), nullptr, &method_attr, &sig, &sig_size, nullptr, nullptr))) {
 					if (IsMdSpecialName(method_attr) && !wcscmp(method_name, L"Invoke")) {
 						std::vector<std::wstring> method_param_names;
 						auto method_params = enum_params(m);
@@ -444,7 +448,7 @@ std::shared_ptr<meta_type> meta_type_reader::get_type()
 	return result;
 }
 
-std::wstring meta_type_reader::format_visibility( meta_visibility visibility )
+std::wstring meta_type_reader::format_visibility(meta_visibility visibility)
 {
 	switch (visibility) {
 	case meta_visibility::vis_unknown: return wstring();
@@ -457,12 +461,12 @@ std::wstring meta_type_reader::format_visibility( meta_visibility visibility )
 	}
 }
 
-std::wstring meta_type_reader::get_full_name( mdToken token )
+std::wstring meta_type_reader::get_full_name(mdToken token)
 {
 	if (metadata_import) {
 		if (TypeFromToken(token) == mdtTypeSpec) {
 			PCCOR_SIGNATURE sig = nullptr; ULONG sig_size = 0;
-			if(SUCCEEDED(metadata_import->GetTypeSpecFromToken(token, &sig, &sig_size))) {
+			if (SUCCEEDED(metadata_import->GetTypeSpecFromToken(token, &sig, &sig_size))) {
 				return meta_sig_parser(metadata_import, sig, sig_size, type_generic_param_names).parse_element_type();
 			}
 		}
