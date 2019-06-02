@@ -5,7 +5,7 @@
 class meta_reader
 {
 protected:
-	CComPtr<IMetaDataImport2> metadata_import;
+	_com_ptr_t<_com_IIID<IMetaDataImport2, &IID_IMetaDataImport2>> metadata_import;
 public:
 	meta_reader();
 	meta_reader(const meta_reader& that) { metadata_import = that.metadata_import; }

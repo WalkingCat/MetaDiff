@@ -20,11 +20,11 @@
 
 #define VC_EXTRALEAN
 #include <windows.h>
-#include <atlbase.h>
-//#include <comip.h>
+
+#include <comip.h>
+#pragma comment(lib, "comsuppwd.lib")
 
 //#include <RoMetadataApi.h>
-
 // already included in RoMetadataApi.h
 #include <cor.h>
 #include <CorHdr.h>

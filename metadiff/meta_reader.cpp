@@ -43,7 +43,7 @@ bool meta_reader::init(const wchar_t* filename)
 	}();
 
 	if (_MetaDataGetDispenser != nullptr) {
-		CComPtr<IMetaDataDispenserEx> dispenser;
+		_com_ptr_t<_com_IIID<IMetaDataDispenserEx, &IID_IMetaDataDispenserEx>> dispenser;
 		HRESULT hr = _MetaDataGetDispenser(CLSID_CorMetaDataDispenser, IID_IMetaDataDispenserEx, (void **)&dispenser);
 		if (SUCCEEDED(hr)) hr = dispenser->OpenScope(filename, ofReadOnly, IID_IMetaDataImport2, (IUnknown**)&metadata_import);
 		return SUCCEEDED(hr) && metadata_import;
