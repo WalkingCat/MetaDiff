@@ -191,8 +191,8 @@ int _tmain(int argc, _TCHAR* argv[])
 	const bool is_recursive = ((options & diffRec) == diffRec);
 	const wchar_t def_file_pattern[] = L"*.winmd";
 
-	auto new_file_groups = is_wcs ? find_files_wcs_ex(new_files_pattern, def_file_pattern) : find_files_ex(new_files_pattern.c_str(), is_recursive);
-	auto old_file_groups = is_wcs ? find_files_wcs_ex(old_files_pattern, def_file_pattern) : find_files_ex(old_files_pattern.c_str(), is_recursive);
+	auto new_file_groups = is_wcs ? find_files_wcs_ex(new_files_pattern, def_file_pattern) : find_files_ex(new_files_pattern.c_str(), is_recursive, std::wstring_view());
+	auto old_file_groups = is_wcs ? find_files_wcs_ex(old_files_pattern, def_file_pattern) : find_files_ex(old_files_pattern.c_str(), is_recursive, std::wstring_view());
 
 	wprintf_s(L" new files: %ls%ls\n", new_files_pattern.c_str(), !new_file_groups.empty() ? L"" : L" (NOT EXISTS!)");
 	wprintf_s(L" old files: %ls%ls\n", old_files_pattern.c_str(), !old_file_groups.empty() ? L"" : L" (NOT EXISTS!)");
